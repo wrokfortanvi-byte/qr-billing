@@ -1,0 +1,75 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+
+{% for n in notifications %}
+
+<div class="card mb-3 shadow-sm border-0">
+<div class="card-body d-flex align-items-start" style="overflow:hidden;">
+
+<!-- ICON -->
+<div class="me-3">
+
+{% if "Received" in n.title %}
+
+<div style="width:42px;height:42px;background:#E6F9F0;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+<i class="bi bi-check-circle-fill text-success fs-5"></i>
+</div>
+
+{% elif "Pending" in n.title %}
+
+<div style="width:42px;height:42px;background:#FFF4E5;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+<i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+</div>
+
+{% elif "Created" in n.title %}
+
+<div style="width:42px;height:42px;background:#EAF2FF;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+<i class="bi bi-receipt text-primary fs-5"></i>
+</div>
+
+{% elif n.type == "info" %}
+
+<div style="width:42px;height:42px;background:#EAF2FF;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+<i class="bi bi-info-circle text-primary fs-5"></i>
+</div>
+
+{% else %}
+
+<div style="width:42px;height:42px;background:#F1F5F9;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+<i class="bi bi-bell text-secondary fs-5"></i>
+</div>
+
+{% endif %}
+
+</div>
+
+<!-- TEXT -->
+<div style="flex:1; max-width:100%; overflow:hidden;">
+
+<h6 class="mb-1 fw-bold">{{ n.title }}</h6>
+
+<p class="mb-1 text-muted"
+   style="word-break: break-all; overflow-wrap: anywhere; white-space: normal;">
+    {{ n.message }}
+</p>
+
+<small class="text-muted">
+{{ n.created_at|timesince }} ago
+</small>
+
+</div>
+
+</div>
+</div>
+
+{% empty %}
+
+<p class="text-muted">No notifications yet</p>
+
+{% endfor %}
+
+</div>
+
+{% endblock %}

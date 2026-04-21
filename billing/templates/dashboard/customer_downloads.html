@@ -1,0 +1,203 @@
+{% extends "dashboard/customer_base.html" %}
+
+{% block page_title %}
+Downloads
+{% endblock %}
+
+{% block page_subtitle %}
+Your downloaded invoices
+{% endblock %}
+
+{% block content %}
+
+<style>
+
+/* ========================= */
+/* WRAPPER */
+/* ========================= */
+.download-wrapper{
+    background:linear-gradient(135deg,#ffffff,#f9fafb);
+    border-radius:18px;
+    padding:24px;
+    box-shadow:0 8px 25px rgba(0,0,0,0.05);
+}
+
+/* ========================= */
+/* CARD */
+/* ========================= */
+.download-card{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:16px 18px;
+    border-radius:14px;
+    border:1px solid #e2e8f0;
+    margin-bottom:14px;
+    transition:0.25s;
+    position:relative;
+    overflow:hidden;
+}
+
+/* LEFT BORDER HIGHLIGHT */
+.download-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    height:100%;
+    width:4px;
+    background:#22c55e;
+    opacity:0;
+    transition:0.3s;
+}
+
+.download-card:hover{
+    box-shadow:0 10px 25px rgba(0,0,0,0.08);
+    transform:translateY(-3px);
+}
+
+.download-card:hover::before{
+    opacity:1;
+}
+
+/* ========================= */
+/* LEFT SIDE */
+/* ========================= */
+.file-left{
+    display:flex;
+    align-items:center;
+    gap:14px;
+}
+
+/* ICON */
+.file-icon{
+    width:45px;
+    height:45px;
+    background:#dcfce7;
+    color:#16a34a;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
+    box-shadow: inset 0 0 0 1px rgba(34,197,94,0.2);
+}
+
+/* TEXT */
+.file-name{
+    font-weight:600;
+    font-size:15px;
+}
+
+.file-meta{
+    font-size:13px;
+    color:#64748b;
+}
+
+/* ========================= */
+/* RIGHT SIDE */
+/* ========================= */
+.file-actions{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+/* STATUS BADGE */
+.status-badge{
+    background:#dcfce7;
+    color:#16a34a;
+    font-size:11px;
+    padding:4px 10px;
+    border-radius:20px;
+    font-weight:600;
+}
+
+/* DOWNLOAD BUTTON */
+.download-btn{
+    width:38px;
+    height:38px;
+    border-radius:10px;
+    background:#f1f5f9;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-decoration:none;
+    color:#0f172a;
+    transition:0.2s;
+}
+
+.download-btn:hover{
+    background:#22c55e;
+    color:white;
+    transform:scale(1.1);
+    box-shadow:0 6px 15px rgba(34,197,94,0.3);
+}
+
+/* ========================= */
+/* EMPTY STATE */
+/* ========================= */
+.empty-box{
+    text-align:center;
+    padding:50px;
+    color:#64748b;
+}
+
+.empty-box i{
+    font-size:40px;
+    margin-bottom:10px;
+    color:#94a3b8;
+}
+
+</style>
+
+
+<div class="download-wrapper">
+
+{% for invoice in invoices %}
+
+<div class="download-card">
+
+<div class="file-left">
+
+<div class="file-icon">
+<i class="bi bi-file-earmark-pdf"></i>
+</div>
+
+<div>
+<div class="file-name">
+{{ invoice.invoice_number }}.pdf
+</div>
+
+<div class="file-meta">
+{{ invoice.date|date:"d M Y" }} • Invoice File
+</div>
+</div>
+
+</div>
+
+<div class="file-actions">
+
+<span class="status-badge">READY</span>
+
+<a href="{% url 'download_invoice' invoice.id %}" class="download-btn">
+<i class="bi bi-download"></i>
+</a>
+
+</div>
+
+</div>
+
+{% empty %}
+
+<div class="empty-box">
+<i class="bi bi-folder-x"></i>
+<h5>No Downloads Yet</h5>
+<p>Your paid invoices will appear here</p>
+</div>
+
+{% endfor %}
+
+</div>
+
+{% endblock %}

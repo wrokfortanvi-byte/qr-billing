@@ -1,0 +1,444 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+
+<style>
+
+.dashboard-card{
+    background:#ffffff;
+    border-radius:16px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.05);
+}
+
+.table{
+    border-collapse:separate;
+    border-spacing:0 12px;
+}
+
+.table thead th{
+    border:none;
+    font-size:14px;
+    color:#6b7280;
+}
+
+.table tbody tr{
+    background:#ffffff;
+    border-radius:12px;
+    transition:background .2s ease;
+    box-shadow:0 2px 6px rgba(0,0,0,0.04);
+}
+
+.table tbody tr:hover td{
+    background:#f3f4f6;
+}
+
+.table td{
+    border:none;
+    padding:14px;
+}
+
+.status-paid{
+    background: linear-gradient(135deg, #bbf7d0, #22c55e);
+    color:#064e3b;
+    padding:6px 16px;
+    border-radius:30px;
+    font-size:12px;
+    font-weight:600;
+    box-shadow: 0 2px 8px rgba(34,197,94,0.4);
+}
+
+.status-pending{
+    background: linear-gradient(135deg, #fef08a, #facc15);
+    color:#78350f;
+    padding:6px 16px;
+    border-radius:30px;
+    font-size:12px;
+    font-weight:600;
+    box-shadow: 0 2px 8px rgba(250,204,21,0.4);
+}
+.status-overdue{
+    background: linear-gradient(135deg, #fecaca, #ef4444);
+    color:#7f1d1d;
+    padding:6px 16px;
+    border-radius:30px;
+    font-size:12px;
+    font-weight:600;
+    box-shadow: 0 2px 8px rgba(239,68,68,0.4);
+}
+
+.custom-modal{
+    border-radius:16px;
+    border:none;
+}
+
+.modal-content{
+    border-radius:16px;
+    padding:10px;
+}
+
+.modal-header{
+    border-bottom:none;
+}
+
+.custom-select,
+.quantity-input{
+    border-radius:10px;
+    height:48px;
+    border:1px solid #e5e7eb;
+    padding:0 12px;
+    font-size:14px;
+}
+
+.total-box{
+    background:#f1f3f5;
+    border-radius:12px;
+    padding:14px 18px;
+    display:flex;
+    justify-content:space-between;
+    font-weight:600;
+}
+
+.create-btn{
+    height:50px;
+    border-radius:12px;
+    border:none;
+    font-weight:600;
+    color:white;
+    background-color:#2E7D57;
+}
+
+.create-btn:hover{
+    background-color:#256a49;
+}
+
+</style>
+
+
+<!-- 🔍 SEARCH + BUTTON (OUTSIDE CARD) -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+
+<form method="GET" style="width:300px;">
+<input type="text" name="search" class="form-control" placeholder="Search invoices...">
+</form>
+
+<button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#invoiceModal">
++ New Invoice
+</button>
+
+</div>
+<div class="dashboard-card p-4">
+<div class="table-responsive">
+
+<table class="table align-middle">
+
+<thead>
+<tr>
+<th>Invoice</th>
+<th>Customer</th>
+<th>Date</th>
+<th>Items</th>
+<th>Discount</th>
+<th>Amount</th>
+<th>Status</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for invoice in invoices %}
+
+<tr>
+
+<td>{{ invoice.invoice_number }}</td>
+
+<td>{{ invoice.customer.customer_profile.full_name }}</td>
+
+<td>{{ invoice.date|date:"d M Y" }}</td>
+
+<td>{{ invoice.items.count }} items</td>
+
+<!-- ✅ IMPROVED DISCOUNT -->
+<td>
+{% for item in invoice.items.all %}
+{% if item.discount > 0 %}
+<span class="badge bg-light text-dark">{{ item.discount }}%</span>
+{% endif %}
+{% empty %}
+<span class="text-muted">-</span>
+{% endfor %}
+</td>
+
+<td>₹{{ invoice.total_amount }}</td>
+
+<td>
+{% if invoice.payment_status == "PAID" %}
+<span class="status-paid">PAID</span>
+{% elif invoice.payment_status == "PENDING" %}
+<span class="status-pending">
+PENDING
+</span>
+
+{% elif invoice.payment_status == "OVERDUE" %}
+<span class="status-overdue">OVERDUE</span>
+{% endif %}
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody></table>
+</div>
+</div>
+
+
+<!-- ================= MODAL ================= -->
+
+<div class="modal fade" id="invoiceModal" tabindex="-1">
+<div class="modal-dialog modal-dialog-centered">
+<div class="modal-content custom-modal">
+
+<div class="modal-header">
+<h5 class="fw-bold mb-0">Create Invoice</h5>
+<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<div class="modal-body">
+
+<form method="POST" id="invoiceForm">
+{% csrf_token %}
+
+<div class="mb-3">
+
+<select name="customer" class="form-select custom-select" required>
+
+<option value="" disabled selected>Select Customer</option>
+
+{% for customer in customers %}
+<option value="{{ customer.id }}">
+{{ customer.customer_profile.full_name }}
+</option>
+{% endfor %}
+
+</select>
+
+</div>
+
+<label class="fw-semibold mb-2">Items</label>
+
+<div id="items-container">
+
+<div class="row mb-3 item-row">
+
+<div class="col-4">
+<select name="product[]" class="form-select custom-select product-select" required>
+<option value="" disabled selected>Product</option>
+
+{% for product in products %}
+<option value="{{ product.id }}"
+data-price="{{ product.price }}"
+data-gst="{{ product.gst_rate }}">
+{{ product.name }} - ₹{{ product.price }}
+</option>
+{% endfor %}
+
+</select>
+</div>
+
+<div class="col-3">
+<input type="number" name="quantity[]" class="form-control quantity-input" value="1" min="1">
+</div>
+
+<div class="col-2">
+<input type="number" name="discount[]" class="form-control quantity-input" value="0" min="0" placeholder="Disc%">
+</div>
+
+<div class="col-3">
+<input type="text" class="form-control gst-display" placeholder="GST Auto" disabled>
+</div>
+
+</div>
+
+</div>
+
+<button type="button" class="btn btn-outline-secondary w-100 mb-3" id="add-item">
++ Add Item
+</button>
+
+<div class="total-box mb-3">
+<span>Total</span>
+<span>₹<span id="total-amount">0</span></span>
+</div>
+
+<!-- ✅ FIXED BUTTON -->
+<button type="submit" class="create-btn w-100" id="createBtn">
+Create Invoice
+</button>
+
+</form>
+
+</div>
+</div>
+</div>
+</div>
+
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+const container = document.getElementById("items-container");
+const addBtn = document.getElementById("add-item");
+const totalDisplay = document.getElementById("total-amount");
+
+function updateTotal(){
+let total = 0;
+
+document.querySelectorAll(".item-row").forEach(row =>{
+
+const product = row.querySelector(".product-select");
+const quantity = row.querySelector("input[name='quantity[]']");
+const discount = row.querySelector("input[name='discount[]']");
+const gstDisplay = row.querySelector(".gst-display");
+
+if(product.selectedOptions.length > 0){
+
+const price = parseFloat(product.selectedOptions[0].dataset.price || 0);
+const gst = parseFloat(product.selectedOptions[0].dataset.gst || 0);
+const qty = parseInt(quantity.value) || 0;
+const disc = parseFloat(discount.value) || 0;
+
+let subtotal = price * qty;
+
+let discountAmount = subtotal * (disc/100);
+subtotal -= discountAmount;
+
+let gstAmount = subtotal * (gst/100);
+
+gstDisplay.value = "₹" + gstAmount.toFixed(2);
+
+total += subtotal + gstAmount;
+
+}
+
+});
+
+totalDisplay.innerText = total.toFixed(2);
+}
+
+addBtn.addEventListener("click", function(){
+
+const newRow = container.firstElementChild.cloneNode(true);
+
+newRow.querySelector(".product-select").selectedIndex = 0;
+newRow.querySelector("input[name='quantity[]']").value = 1;
+newRow.querySelector("input[name='discount[]']").value = 0;
+newRow.querySelector(".gst-display").value = "";
+
+container.appendChild(newRow);
+
+});
+
+container.addEventListener("change", updateTotal);
+container.addEventListener("input", updateTotal);
+
+});
+
+
+/* =========================
+   PREVENT DOUBLE SUBMIT
+========================= */
+document.getElementById("invoiceForm").addEventListener("submit", function(){
+document.getElementById("createBtn").disabled = true;
+});
+
+
+/* =========================
+   CSRF TOKEN FUNCTION
+========================= */
+function getCookie(name) {
+let cookieValue = null;
+if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + "=")) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+        }
+    }
+}
+return cookieValue;
+}
+
+
+/* =========================
+   FINAL PAYMENT FUNCTION
+========================= */
+
+let paymentRunning = false;
+
+function payInvoice(order_id, amount){
+
+if(paymentRunning) return;
+paymentRunning = true;
+
+// ✅ DEBUG
+console.log("ORDER:", order_id);
+console.log("AMOUNT:", amount);
+
+var options = {
+
+key: "{{ RAZORPAY_KEY_ID }}",
+amount: parseFloat(amount) * 100,
+currency: "INR",
+name: "QR Billing",
+description: "Invoice Payment",
+order_id: order_id,
+
+handler: function (response){
+
+// ✅ DEBUG
+console.log("PAYMENT RESPONSE:", response);
+
+fetch("{% url 'payment_success' %}", {
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+"X-CSRFToken": getCookie("csrftoken")
+},
+body: JSON.stringify({
+    razorpay_payment_id: response.razorpay_payment_id,
+    razorpay_order_id: response.razorpay_order_id,
+    razorpay_signature: response.razorpay_signature   // ✅ FIX ADDED
+})
+})
+.then(res => res.json())
+.then(data => {
+
+paymentRunning = false;
+
+if(data.status === "ok" || data.status === "already processed"){
+location.reload();
+} else {
+alert("Something went wrong ❌");
+}
+
+})
+.catch(err => {
+paymentRunning = false;
+console.error(err);
+alert("Payment save nahi hua ❌");
+});
+
+}
+
+};
+
+var rzp = new Razorpay(options);
+rzp.open();
+
+}
+
+</script>
+{% endblock %}

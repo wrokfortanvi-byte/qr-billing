@@ -1,0 +1,303 @@
+{% extends "dashboard/customer_base.html" %}
+
+{% block page_title %}My Subscriptions{% endblock %}
+{% block page_subtitle %}View and manage your subscriptions{% endblock %}
+
+{% block content %}
+
+<!-- ✅ IMPORTANT: ICON CDN -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+<style>
+.card-box{
+    background:#fff;
+    padding:20px;
+    border-radius:16px;
+    box-shadow:0 5px 15px rgba(0,0,0,0.08);
+    transition:0.3s;
+    height:100%;
+}
+.card-box:hover{
+    transform:translateY(-5px);
+}
+
+.badge{
+    padding:6px 10px;
+    border-radius:20px;
+    font-size:12px;
+}
+
+.badge-active{background:#dcfce7;color:#166534;}
+.badge-paused{background:#fef3c7;color:#92400e;}
+.badge-cancel{background:#fee2e2;color:#991b1b;}
+
+.price-box{
+    background:#f8fafc;
+    padding:12px;
+    border-radius:10px;
+    margin-top:10px;
+}
+
+.expiry-box{
+    background:#fff7ed;
+    padding:10px;
+    border-radius:10px;
+    font-size:13px;
+    margin-top:10px;
+    color:#b45309;
+    border-left:4px solid #fb923c;
+}
+
+.ai-box{
+    background:#ecfdf5;
+    padding:10px;
+    border-radius:10px;
+    font-size:13px;
+    margin-top:8px;
+    color:#065f46;
+}
+</style>
+
+<div class="row g-4">
+
+{% for item in data %}
+<div class="col-md-4">
+
+<div class="card-box">
+
+<!-- PRODUCT -->
+<h5 class="d-flex align-items-center gap-2">
+    <i class="bi bi-box-seam-fill text-success fs-4"></i>
+    {{ item.sub.product.name }}
+</h5>
+
+<!-- PLAN -->
+<p>
+    <i class="bi bi-arrow-repeat text-primary"></i>
+    {{ item.sub.plan_type }}
+</p>
+
+<!-- DATE -->
+<p>
+    <i class="bi bi-calendar-event text-dark"></i>
+    {{ item.sub.start_date }} → {{ item.sub.end_date }}
+</p>
+
+<!-- DELIVERY -->
+<p>
+    <i class="bi bi-truck text-secondary"></i>
+    Next: {{ item.sub.next_delivery_date }}
+</p>
+
+<!-- STATUS -->
+<p>
+Status:
+{% if item.sub.status == "ACTIVE" %}
+<span class="badge badge-active">
+    <i class="bi bi-check-circle-fill"></i> Active
+</span>
+{% elif item.sub.status == "PAUSED" %}
+<span class="badge badge-paused">
+    <i class="bi bi-pause-circle-fill"></i> Paused
+</span>
+{% else %}
+<span class="badge badge-cancel">
+    <i class="bi bi-x-circle-fill"></i> Cancelled
+</span>
+{% endif %}
+</p>
+
+<!-- EXPIRY -->
+{% with days=item.sub.remaining_days %}
+{% if days <= 2 and days > 0 %}
+<div class="expiry-box d-flex gap-2">
+    <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+    <div>
+        Expires in {{ days }} day{{ days|pluralize }}
+    </div>
+</div>
+{% endif %}
+{% endwith %}
+
+<!-- AI EXPIRY -->
+{% if item.ai_msg %}
+<div class="expiry-box d-flex gap-2">
+    <i class="bi bi-bell-fill text-warning"></i>
+    <div>{{ item.ai_msg }}</div>
+</div>
+{% endif %}
+
+<!-- AI UPGRADE -->
+{% if item.upgrade_msg %}
+<div class="ai-box d-flex gap-2">
+    <i class="bi bi-rocket-takeoff-fill text-success"></i>
+    <div>
+        <strong>Smart Upgrade</strong><br>
+        {{ item.upgrade_msg }}
+    </div>
+</div>
+{% endif %}
+
+<!-- PRICE -->
+<div class="price-box">
+<div>Subtotal: ₹{{ item.sub.subtotal }}</div>
+<div class="text-danger">Discount: -₹{{ item.sub.discount }}</div>
+<div><strong>Total: ₹{{ item.sub.total_amount }}</strong></div>
+</div>
+
+<hr>
+
+<!-- PAYMENT -->
+{% if item.sub.is_paid %}
+
+<div class="d-flex justify-content-between align-items-center">
+
+    <span class="text-success fw-bold">
+        <i class="bi bi-check-circle-fill"></i> Active
+    </span>
+
+    <a href="{% url 'subscription_pdf' item.sub.id %}" 
+       class="btn btn-sm btn-outline-success">
+       <i class="bi bi-download"></i>
+    </a>
+
+</div>
+
+{% else %}
+
+    {% if item.invoice %}
+
+        <p><strong>Invoice:</strong> #{{ item.invoice.id }}</p>
+
+        {% if item.invoice.payment_status != "PAID" %}
+        <button class="btn btn-success btn-sm w-100"
+        onclick="payNow(this,'{{ item.invoice.razorpay_order_id }}','{{ item.invoice.total_amount }}')">
+        <i class="bi bi-credit-card"></i> Pay ₹{{ item.invoice.total_amount }}
+        </button>
+        {% else %}
+        <span class="text-success fw-bold">
+            <i class="bi bi-check-circle-fill"></i> Paid
+        </span>
+        {% endif %}
+
+    {% else %}
+
+        <p class="text-warning">
+            <i class="bi bi-exclamation-circle"></i> Payment Pending
+        </p>
+
+        <button class="btn btn-primary btn-sm w-100"
+        onclick="payNow(this,'{{ item.sub.razorpay_order_id|default:'' }}','{{ item.sub.total_amount }}')">
+        <i class="bi bi-lightning-charge-fill"></i> Pay ₹{{ item.sub.total_amount }}
+        </button>
+
+    {% endif %}
+
+{% endif %}
+
+</div>
+</div>
+{% endfor %}
+
+</div>
+<!-- RAZORPAY -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+let paymentRunning = false;
+
+function payNow(btn, orderId, amount){
+
+    if(paymentRunning) return;
+    paymentRunning = true;
+
+    btn.disabled = true;
+    btn.innerHTML = "Processing...";
+
+    if(!orderId){
+        alert("❌ Order ID Missing!\n\nThis happened because the Razorpay API Keys in 'settings.py' are invalid so Razorpay couldn't generate an Order ID.\n\n👉 Solution: Update the Keys in 'qr_billing/settings.py' and try again.");
+        btn.disabled = false;
+        paymentRunning = false;
+        return;
+    }
+
+    var options = {
+        key: "{{ RAZORPAY_KEY_ID }}",
+        amount: Math.round(parseFloat(amount) * 100),
+        currency: "INR",
+        name: "QR Billing",
+        description: "Subscription Payment",
+        order_id: orderId,
+
+        handler: function (response){
+
+            console.log("RAZORPAY RESPONSE:", response);
+
+            // 🔥 IMPORTANT: send ALL 3 values
+            fetch("{% url 'payment_success' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCookie("csrftoken")
+                },
+                body: JSON.stringify({
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_signature: response.razorpay_signature
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+
+                console.log("SERVER RESPONSE:", data);
+
+                paymentRunning = false;
+
+                if(data.status === "success"){
+                    alert("✅ Payment Successful");
+                    location.reload();
+                }else{
+                    alert("❌ Payment verification failed");
+                    btn.disabled = false;
+                }
+            })
+            .catch((err) => {
+                console.log("ERROR:", err);
+                alert("❌ Server Error");
+                btn.disabled = false;
+                paymentRunning = false;
+            });
+
+        },
+
+        modal: {
+            ondismiss: function(){
+                paymentRunning = false;
+                btn.disabled = false;
+                btn.innerHTML = "Pay Now";
+            }
+        }
+    };
+
+    var rzp = new Razorpay(options);
+    rzp.open();
+}
+
+
+// ✅ CSRF TOKEN FUNCTION
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %}

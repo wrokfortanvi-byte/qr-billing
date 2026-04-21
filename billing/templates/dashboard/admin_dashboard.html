@@ -1,0 +1,279 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+
+<style>
+body{background:#f8fafc;}
+
+.dashboard-card{
+    background:linear-gradient(135deg,#ffffff,#f9fafb);
+    border-radius:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.05);
+    transition:0.3s;
+    padding:18px;
+    height:100%;
+    border:1px solid #eef2f7;
+}
+.dashboard-card:hover{
+    transform:translateY(-5px);
+    box-shadow:0 15px 35px rgba(0,0,0,0.08);
+}
+
+.card-title{font-size:13px;color:#64748b;}
+.card-value{font-size:26px;font-weight:700;color:#0f172a;}
+
+.icon-box{
+    width:52px;height:52px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+}
+.icon-green{background:#ecfdf5;color:#22c55e;}
+.icon-blue{background:#eff6ff;color:#3b82f6;}
+.icon-yellow{background:#fffbeb;color:#f59e0b;}
+.icon-emerald{background:#ecfdf5;color:#059669;}
+
+.growth-up{color:#16a34a;font-weight:600;}
+.growth-down{color:#dc2626;font-weight:600;}
+.sub-text{font-size:11px;color:#94a3b8;}
+
+.chart-container{height:260px;margin-top:20px;}
+
+.invoice-item{
+    border-radius:14px;padding:14px;margin-bottom:12px;
+    display:flex;justify-content:space-between;align-items:center;
+    background:#ffffff;border:1px solid #f1f5f9;
+}
+
+.status-badge{
+    font-size:11px;padding:6px 12px;border-radius:999px;font-weight:600;
+}
+.paid{background:#dcfce7;color:#16a34a;}
+.pending{background:#fef3c7;color:#d97706;}
+.overdue{background:#fee2e2;color:#dc2626;}
+
+.section-title{
+    font-weight:600;margin-bottom:8px;
+    display:flex;align-items:center;gap:6px;
+}
+
+/* ✅ NEW: SCROLL ONLY RECENT ACTIVITY */
+.activity-scroll{
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+/* scrollbar styling */
+.activity-scroll::-webkit-scrollbar{
+    width:6px;
+}
+.activity-scroll::-webkit-scrollbar-thumb{
+    background:#cbd5f5;
+    border-radius:10px;
+}
+</style>
+
+<!-- ================= TOP CARDS ================= -->
+<div class="row g-4 mb-4">
+
+<div class="col-md-3">
+<div class="dashboard-card d-flex justify-content-between align-items-center">
+<div>
+<div class="card-title">Total Customers</div>
+<div class="card-value">{{ total_customers }}</div>
+</div>
+<div class="icon-box icon-green"><i class="bi bi-people fs-4"></i></div>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="dashboard-card d-flex justify-content-between align-items-center">
+<div>
+<div class="card-title">Total Products</div>
+<div class="card-value">{{ total_products }}</div>
+</div>
+<div class="icon-box icon-blue"><i class="bi bi-box fs-4"></i></div>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="dashboard-card d-flex justify-content-between align-items-center">
+<div>
+<div class="card-title">Total Invoices</div>
+<div class="card-value">{{ total_invoices }}</div>
+</div>
+<div class="icon-box icon-yellow"><i class="bi bi-receipt fs-4"></i></div>
+</div>
+</div>
+
+<div class="col-md-3">
+<div class="dashboard-card d-flex justify-content-between align-items-center">
+<div>
+<div class="card-title">Revenue</div>
+<div class="card-value">₹{{ total_revenue|floatformat:2 }}</div>
+
+<div class="growth-box">
+{% if growth > 0 %}
+<span class="growth-up">▲ +{{ growth }}%</span>
+{% elif growth < 0 %}
+<span class="growth-down">▼ {{ growth }}%</span>
+{% else %}
+<span>0%</span>
+{% endif %}
+</div>
+
+<div class="sub-text">vs last 7 days</div>
+</div>
+
+<div class="icon-box icon-emerald">
+<i class="bi bi-currency-rupee fs-4"></i>
+</div>
+</div>
+</div>
+
+</div>
+
+<!-- ================= CHART + ACTIVITY ================= -->
+<div class="row g-4">
+
+<!-- CHART -->
+<div class="col-md-8">
+<div class="dashboard-card">
+
+<h6 class="section-title">
+<i class="bi bi-bar-chart"></i>
+Weekly Revenue
+</h6>
+
+<div class="chart-container">
+<canvas id="revenueChart"></canvas>
+</div>
+
+</div>
+</div>
+
+<!-- ================= ACTIVITY ================= -->
+<div class="col-md-4">
+<div class="dashboard-card">
+
+<h6 class="section-title">
+<i class="bi bi-clock-history"></i>
+Recent Activity
+</h6>
+
+<!-- ✅ SCROLL WRAPPER -->
+<div class="activity-scroll">
+
+<!-- INVOICES -->
+{% for invoice in recent_invoices %}
+<div class="invoice-item">
+
+<div>
+<strong>
+{{ invoice.customer.customer_profile.full_name|default:invoice.customer.username }}
+</strong><br>
+
+<small class="text-muted">
+{{ invoice.invoice_number }} • {{ invoice.date|date:"d M Y" }}
+</small>
+</div>
+
+<div class="text-end">
+<div class="fw-bold">₹{{ invoice.total_amount }}</div>
+
+{% if invoice.payment_status == "PAID" %}
+<span class="status-badge paid">Paid</span>
+{% elif invoice.payment_status == "PENDING" %}
+<span class="status-badge pending">Pending</span>
+{% elif invoice.payment_status == "OVERDUE" %}
+<span class="status-badge overdue">Overdue</span>
+{% endif %}
+
+</div>
+</div>
+{% endfor %}
+
+<!-- SUBSCRIPTIONS -->
+{% for sub in recent_subscriptions %}
+<div class="invoice-item">
+
+<div>
+<strong>
+{{ sub.user.customer_profile.full_name|default:sub.user.username }}
+</strong><br>
+
+<small class="text-muted">
+Subscription • {{ sub.start_date|date:"d M Y" }}
+</small>
+</div>
+
+<div class="text-end">
+<div class="fw-bold">₹{{ sub.total_amount }}</div>
+
+{% if sub.status == "ACTIVE" %}
+<span class="status-badge paid">Paid</span>
+{% else %}
+<span class="status-badge pending">Pending</span>
+{% endif %}
+
+</div>
+</div>
+{% endfor %}
+
+{% if not recent_invoices and not recent_subscriptions %}
+<div class="text-center text-muted mt-4">
+No activity yet 😔
+</div>
+{% endif %}
+
+</div> <!-- ✅ END SCROLL -->
+
+</div>
+</div>
+
+</div>
+
+<!-- ================= CHART JS ================= -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+
+const ctx = document.getElementById("revenueChart");
+
+if(ctx){
+
+const context = ctx.getContext("2d");
+
+const gradient = context.createLinearGradient(0, 0, 0, 300);
+gradient.addColorStop(0, "rgba(59,130,246,0.9)");
+gradient.addColorStop(0.5, "rgba(16,185,129,0.8)");
+gradient.addColorStop(1, "rgba(59,130,246,0.3)");
+
+new Chart(ctx,{
+type:"bar",
+data:{
+labels: {{ week_labels|safe }},
+datasets:[{
+label:"Revenue",
+data: {{ week_data|safe }},
+backgroundColor: gradient,
+borderRadius: 10,
+borderSkipped: false,
+}]
+},
+options:{
+responsive:true,
+maintainAspectRatio:false,
+plugins:{legend:{display:false}},
+scales:{
+y:{beginAtZero:true},
+x:{grid:{display:false}}
+}
+}
+});
+
+}
+
+});
+</script>
+
+{% endblock %}

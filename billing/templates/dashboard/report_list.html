@@ -1,0 +1,348 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+
+<!-- ✅ FONT AWESOME -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+
+/* =========================
+   CARD UI
+========================= */
+.report-card {
+    border-radius: 16px;
+    transition: all 0.3s ease;
+    background: #ffffff;
+    border: none;
+    position: relative;
+}
+
+.report-card:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+}
+
+.report-title {
+    font-weight: 600;
+    font-size: 18px;
+    color: #2c3e50;
+}
+
+.report-desc {
+    font-size: 13px;
+    color: #6c757d;
+}
+
+.btn-download {
+    border-radius: 10px;
+    font-weight: 500;
+    transition: 0.3s;
+}
+
+.btn-download:hover {
+    transform: scale(1.05);
+}
+
+/* =========================
+   BUTTON COLORS
+========================= */
+.pdf-btn, .zip-btn {
+    background: linear-gradient(45deg, #16a34a, #22c55e);
+    color: white;
+    border: none;
+}
+
+/* =========================
+   ICONS
+========================= */
+.icon-box {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.icon-box i {
+    font-size: 22px;
+}
+
+/* 🔥 FLOATING BUTTON */
+.ai-float-btn {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, #facc15, #f59e0b);
+    color: white;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 999;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    transition: 0.3s;
+}
+
+.ai-float-btn:hover {
+    transform: scale(1.1) rotate(8deg);
+}
+
+/* 📦 RESULT POPUP */
+.ai-result-box {
+    position: fixed;
+    bottom: 90px;
+    right: 25px;
+    width: 300px;
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    display: none;
+    font-size: 14px;
+    white-space: pre-line;
+    z-index: 999;
+}
+
+/* ❌ CLOSE BUTTON */
+.close-btn {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.close-btn:hover {
+    color: red;
+}
+
+.icon-pdf {
+    background: rgba(34,197,94,0.1);
+    color: #16a34a;
+}
+
+.icon-top {
+    background: rgba(255,193,7,0.15);
+    color: #f59e0b;
+}
+
+.icon-low {
+    background: rgba(239,68,68,0.15);
+    color: #ef4444;
+}
+
+.icon-zip {
+    background: rgba(34,197,94,0.1);
+    color: #16a34a;
+}
+
+/* =========================
+   HEADER
+========================= */
+.top-bar {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+}
+
+.back-btn {
+    background:#111827;
+    color:white;
+    padding:8px 14px;
+    border-radius:8px;
+    text-decoration:none;
+    font-size:14px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+}
+
+.back-btn:hover {
+    background:#374151;
+    color:white;
+}
+
+/* =========================
+   AI BOX
+========================= */
+.ai-box {
+    background: #ffffff;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+#aiResult {
+    background: #f0fdf4;
+    border-left: 5px solid #22c55e;
+    font-size: 14px;
+    white-space: pre-line;
+    display:none;
+}
+
+</style>
+
+
+<!-- 🤖 AI SUGGESTIONS -->
+<div class="ai-box">
+
+<button onclick="getAISuggestions()" class="ai-float-btn" title="AI Suggestions">
+    <i class="fas fa-lightbulb"></i>
+</button>
+
+<!-- RESULT BOX -->
+<div id="aiResult" class="ai-result-box">
+
+    <!-- ❌ CANCEL BUTTON -->
+    <span class="close-btn" onclick="closeAIBox()">
+        <i class="fas fa-times"></i>
+    </span>
+
+</div>
+
+</div>
+
+
+<div class="row">
+
+{% for report in reports %}
+<div class="col-md-4 mb-4">
+
+<div class="card report-card shadow-sm p-3">
+
+{% if report.id <= 5 %}
+    <div class="icon-box icon-pdf">
+        <i class="fas fa-calendar-alt"></i>
+    </div>
+{% elif report.id == 6 %}
+    <div class="icon-box icon-pdf">
+        <i class="fas fa-check-circle"></i>
+    </div>
+{% elif report.id == 7 %}
+    <div class="icon-box icon-pdf">
+        <i class="fas fa-clock"></i>
+    </div>
+{% elif report.id == 8 %}
+    <div class="icon-box icon-low">
+        <i class="fas fa-exclamation-triangle"></i>
+    </div>
+{% elif report.id == 9 %}
+    <div class="icon-box icon-top">
+        <i class="fas fa-fire"></i>
+    </div>
+{% elif report.id == 10 %}
+    <div class="icon-box icon-low">
+        <i class="fas fa-chart-line"></i>
+    </div>
+{% elif report.id == 11 %}
+    <div class="icon-box icon-zip">
+        <i class="fas fa-file-archive"></i>
+    </div>
+{% endif %}
+
+<div class="report-title">
+    {{ report.name }}
+</div>
+
+<div class="report-desc mb-3">
+    Generate and download report instantly
+</div>
+
+{% if report.id == 11 %}
+    <a href="{% url 'download_all_reports' %}" class="btn btn-download zip-btn w-100">
+       <i class="fas fa-download"></i> Download ZIP
+    </a>
+{% else %}
+    <a href="{% url 'generate_pdf' report.id %}" class="btn btn-download pdf-btn w-100">
+       <i class="fas fa-file-pdf"></i> Download PDF
+    </a>
+{% endif %}
+
+</div>
+</div>
+{% endfor %}
+
+</div>
+</div>
+
+<script>
+
+let timer;
+
+function getAISuggestions() {
+
+    const box = document.getElementById("aiResult");
+
+    box.style.display = "block";
+    box.innerHTML = "⏳ Loading AI insights..."; // ✅ FIXED
+
+    fetch("/reports/ai-suggestions/")
+    .then(res => res.json())
+    .then(data => {
+
+        let html = "";
+
+        data.suggestions.forEach(item => {
+
+            let icon = "";
+            let color = "";
+
+            if (item.type === "success") {
+                icon = "fa-check-circle";
+                color = "green";
+            } 
+            else if (item.type === "warning") {
+                icon = "fa-exclamation-triangle";
+                color = "orange";
+            } 
+            else if (item.type === "danger") {
+                icon = "fa-times-circle";
+                color = "red";
+            } 
+            else if (item.type === "top") {
+                icon = "fa-fire";
+                color = "#f59e0b";
+            }
+            else if (item.type === "info") {   // ✅ NEW
+                icon = "fa-lightbulb";
+                color = "#3b82f6";
+            }
+
+            html += `
+                <div style="display:flex; gap:10px; margin-bottom:8px;">
+                    <i class="fas ${icon}" style="color:${color}; margin-top:4px;"></i>
+                    <div>${item.text}</div>
+                </div>
+            `;
+        });
+
+        box.innerHTML = `<span class="close-btn" onclick="closeAIBox()"><i class="fas fa-times"></i></span>` + html;
+
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            closeAIBox();
+        }, 5000);
+
+    })
+    .catch(() => {
+        box.innerHTML = "❌ Error loading suggestions";
+    });
+}
+
+function closeAIBox() {
+    document.getElementById("aiResult").style.display = "none";
+    clearTimeout(timer);
+}
+
+</script>
+
+{% endblock %}

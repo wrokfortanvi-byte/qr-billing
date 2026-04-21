@@ -1,0 +1,228 @@
+{% extends "dashboard/customer_base.html" %}
+
+{% block page_title %}
+Notifications
+{% endblock %}
+
+{% block page_subtitle %}
+Stay updated with your billing activity
+{% endblock %}
+
+{% block content %}
+
+<style>
+
+/* ========================= */
+/* CARD */
+/* ========================= */
+.notification-card{
+    background:linear-gradient(135deg,#ffffff,#f9fafb);
+    border-radius:16px;
+    padding:16px 18px;
+    margin-bottom:14px;
+    border:1px solid #e2e8f0;
+    display:flex;
+    align-items:flex-start;
+    gap:14px;
+    transition:0.25s;
+    position:relative;
+}
+
+/* LEFT COLOR BAR */
+.notification-card::before{
+    content:"";
+    position:absolute;
+    left:0;
+    top:0;
+    height:100%;
+    width:4px;
+    border-radius:10px;
+    opacity:0;
+    transition:0.3s;
+}
+
+/* HOVER */
+.notification-card:hover{
+    transform:translateY(-3px);
+    box-shadow:0 10px 25px rgba(0,0,0,0.08);
+}
+
+/* UNREAD STYLE */
+.notification-card.unread{
+    background:#f0fdf4;
+}
+
+/* ICON */
+.notification-icon{
+    width:45px;
+    height:45px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:18px;
+}
+
+/* ICON COLORS */
+.icon-success{
+    background:#dcfce7;
+    color:#16a34a;
+}
+.icon-warning{
+    background:#fef3c7;
+    color:#d97706;
+}
+.icon-info{
+    background:#dbeafe;
+    color:#2563eb;
+}
+
+/* LEFT BORDER COLORS */
+.icon-success ~ .content::before{background:#22c55e;}
+.icon-warning ~ .content::before{background:#f59e0b;}
+.icon-info ~ .content::before{background:#3b82f6;}
+
+/* TEXT */
+.notification-title{
+    font-weight:600;
+    font-size:15px;
+}
+
+.notification-message{
+    color:#64748b;
+    font-size:14px;
+    margin-top:2px;
+}
+
+.notification-time{
+    font-size:12px;
+    color:#94a3b8;
+    margin-top:4px;
+}
+
+/* UNREAD DOT */
+.unread-dot{
+    width:8px;
+    height:8px;
+    background:#22c55e;
+    border-radius:50%;
+    display:inline-block;
+    margin-left:6px;
+}
+
+/* EMPTY STATE */
+.empty-box{
+    text-align:center;
+    padding:50px;
+    color:#64748b;
+}
+
+.empty-box i{
+    font-size:40px;
+    margin-bottom:10px;
+    color:#94a3b8;
+}
+
+/* FADE ANIMATION */
+.fade-in{
+    animation: fadeIn 0.7s ease;
+}
+
+@keyframes fadeIn{
+    from{opacity:0; transform:translateY(10px);}
+    to{opacity:1; transform:translateY(0);}
+}
+
+</style>
+
+
+<div class="container-fluid fade-in">
+
+{% for n in notifications %}
+
+<div class="notification-card {% if not n.is_read %}unread{% endif %}">
+
+<div class="notification-icon
+
+{% if n.type == 'success' %}
+icon-success
+{% elif n.type == 'warning' %}
+icon-warning
+{% else %}
+icon-info
+{% endif %}
+
+">
+
+{% if n.type == "success" %}
+<i class="bi bi-check-circle"></i>
+
+{% elif n.type == "warning" %}
+<i class="bi bi-exclamation-triangle"></i>
+
+{% else %}
+<i class="bi bi-info-circle"></i>
+
+{% endif %}
+
+</div>
+
+
+<div class="content">
+
+<div class="notification-title">
+
+{{ n.title }}
+
+{% if not n.is_read %}
+<span class="unread-dot"></span>
+{% endif %}
+
+</div>
+
+<div class="notification-message">
+{{ n.message }}
+</div>
+
+<div class="notification-time">
+⏱ {{ n.created_at|timesince }} ago
+</div>
+
+</div>
+
+</div>
+
+{% empty %}
+
+<div class="empty-box">
+<i class="bi bi-bell-slash"></i>
+<h5>No Notifications</h5>
+<p>You’re all caught up 🎉</p>
+</div>
+
+{% endfor %}
+
+</div>
+
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function(){
+
+    fetch("/billing/notifications/read/")
+    .then(res => res.json())
+    .then(data => {
+
+        let badge = document.getElementById("notifCount");
+
+        if(badge){
+            badge.style.display = "none";
+            badge.innerText = "";
+        }
+
+    });
+
+});
+</script>
+
+{% endblock %}

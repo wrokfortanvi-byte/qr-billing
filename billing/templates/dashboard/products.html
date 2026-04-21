@@ -1,0 +1,235 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+
+<style>
+.table{
+    width:100%;
+    border-collapse:collapse;
+}
+.table thead th{
+    font-size:14px;
+    color:#6b7280;
+    padding:12px;
+}
+.table tbody tr{
+    background:#ffffff;
+}
+.table td{
+    padding:14px;
+}
+.low-stock{
+    color:#f59e0b;
+    font-weight:600;
+}
+.out-stock{
+    color:red;
+    font-weight:bold;
+}
+</style>
+
+<div class="dashboard-card p-4">
+
+<!-- ✅ SUCCESS MESSAGE -->
+{% if messages %}
+    {% for message in messages %}
+        <div id="msgBox" class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+<form method="GET" style="width:250px;">
+<input type="text" name="search" value="{{ request.GET.search }}"
+class="form-control" placeholder="Search products...">
+</form>
+
+<button class="btn btn-success"
+data-bs-toggle="modal"
+data-bs-target="#addProductModal">
++ Add Product
+</button>
+
+</div>
+
+<div class="table-responsive">
+
+<table class="table align-middle">
+
+<thead>
+<tr>
+<th>ID</th>
+<th>Product</th>
+<th>Category</th>
+<th>Price</th>
+<th>HSN</th>
+<th>GST</th>
+<th>Stock</th>
+<th>Unit</th>
+<th>Action</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for product in products %}
+<tr>
+
+<td>{{ product.product_id }}</td>
+<td>{{ product.name }}</td>
+<td>{{ product.category }}</td>
+<td>₹{{ product.price }}</td>
+<td>{{ product.hsn_code }}</td>
+<td>{{ product.gst_rate|floatformat:0 }}%</td>
+
+<td>
+{% if product.stock <= 1 %}
+<span class="out-stock">Out ({{ product.stock }})</span>
+{% elif product.stock < 50 %}
+<span class="low-stock">{{ product.stock }}</span>
+{% else %}
+{{ product.stock }}
+{% endif %}
+</td>
+
+<td>{{ product.unit }}</td>
+
+<td>
+<button class="btn btn-sm d-flex align-items-center justify-content-center"
+style="background:#20c997; color:white; border:none; width:35px; height:35px; border-radius:50%; transition:0.3s;"
+onmouseover="this.style.background='#17a589'"
+onmouseout="this.style.background='#20c997'"
+data-bs-toggle="modal"
+data-bs-target="#stockModal{{ product.id }}">
+
+<i class="bi bi-box-arrow-in-down"></i>
+</button>
+</td>
+
+</tr>
+
+<!-- STOCK MODAL -->
+<div class="modal fade" id="stockModal{{ product.id }}">
+<div class="modal-dialog">
+<div class="modal-content p-3">
+
+<form method="POST">
+{% csrf_token %}
+
+<input type="hidden" name="product_id" value="{{ product.id }}">
+
+<div class="modal-header">
+<h5>Add Stock - {{ product.name }}</h5>
+<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<div class="modal-body">
+<input type="number" name="stock" class="form-control"
+placeholder="Enter stock to add" required>
+</div>
+
+<div class="modal-footer">
+<button type="submit" class="btn btn-success">Update</button>
+</div>
+
+</form>
+
+</div>
+</div>
+</div>
+
+{% empty %}
+<tr>
+<td colspan="9" class="text-center text-muted">
+No products found
+</td>
+</tr>
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+<!-- ADD PRODUCT MODAL -->
+
+<div class="modal fade" id="addProductModal" tabindex="-1">
+<div class="modal-dialog">
+<div class="modal-content p-3">
+
+<div class="modal-header">
+<h5 class="modal-title">Add New Product</h5>
+<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<form method="POST">
+{% csrf_token %}
+
+<div class="modal-body">
+
+<div class="mb-3">
+<input type="text" name="name" class="form-control" placeholder="Product Name" required>
+</div>
+
+<div class="mb-3">
+<input type="number" name="price" step="0.01" class="form-control" placeholder="Price" required>
+</div>
+
+<div class="mb-3">
+<input type="number" name="stock" class="form-control" placeholder="Stock Quantity" required>
+</div>
+
+<div class="mb-3">
+<select name="category" class="form-control" required>
+<option value="">Select Category</option>
+<option value="Grocery">Grocery</option>
+<option value="Dairy">Dairy</option>
+<option value="Snacks">Snacks</option>
+<option value="Household">Household</option>
+<option value="Bakery">Bakery</option>
+</select>
+</div>
+
+<div class="mb-3">
+<select name="unit" class="form-control" required>
+<option value="">Select Unit</option>
+<option value="kg">Kg</option>
+<option value="litre">Litre</option>
+<option value="pack">Pack</option>
+<option value="bag">Bag</option>
+<option value="packet">Packet</option>
+<option value="piece">Piece</option>
+</select>
+</div>
+
+</div>
+
+<div class="modal-footer">
+<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+<button type="submit" class="btn btn-success">Add Product</button>
+</div>
+
+</form>
+
+</div>
+</div>
+</div>
+
+<!-- ✅ AUTO HIDE SCRIPT -->
+<script>
+setTimeout(function(){
+    let msg = document.getElementById("msgBox");
+    if(msg){
+        msg.style.transition = "opacity 0.5s";
+        msg.style.opacity = "0";
+        setTimeout(() => msg.remove(), 500);
+    }
+}, 5000); // 5 sec
+</script>
+
+{% endblock %}

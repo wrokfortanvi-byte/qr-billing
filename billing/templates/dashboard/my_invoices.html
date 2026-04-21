@@ -1,0 +1,316 @@
+{% extends "dashboard/customer_base.html" %}
+
+{% block page_title %}
+My Invoices
+{% endblock %}
+
+{% block page_subtitle %}
+{{ invoices.count }} invoices
+{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+
+/* CARD */
+.invoice-card{
+    background:#fff;
+    border-radius:16px;
+    padding:20px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.05);
+}
+
+/* TABLE */
+.table{
+    border-collapse:separate;
+    border-spacing:0 10px;
+}
+
+.table thead th{
+    border:none;
+    font-size:17px;
+    color:#6b7280;
+}
+
+.table tbody tr{
+    background:#f9fafb;
+    border-radius:12px;
+    transition:0.2s;
+}
+
+.table tbody tr:hover{
+    transform:scale(1.01);
+    background:#f3f4f6;
+}
+
+.table td{
+    border:none;
+    padding:14px;
+}
+
+/* STATUS BADGES */
+.badge-paid{
+    background:linear-gradient(135deg,#bbf7d0,#22c55e);
+    color:#065f46;
+    padding:6px 14px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:600;
+}
+
+.badge-pending{
+    background:linear-gradient(135deg,#fef08a,#facc15);
+    color:#78350f;
+    padding:6px 14px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+.badge-overdue{
+    background:linear-gradient(135deg,#fecaca,#ef4444);
+    color:#7f1d1d;
+    padding:6px 14px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+}
+
+/* ACTION ICONS */
+.action-btn{
+    margin-right:10px;
+    color:#3b82f6;
+    font-size:16px;
+    text-decoration:none;
+}
+
+.action-btn:hover{
+    color:#1d4ed8;
+}
+
+/* PAY BUTTON */
+.pay-btn{
+    background:linear-gradient(135deg,#22c55e,#16a34a);
+    color:#fff;
+    border:none;
+    padding:6px 14px;
+    border-radius:8px;
+    font-size:13px;
+    font-weight:500;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    transition:0.2s;
+}
+
+.pay-btn:hover{
+    transform:scale(1.05);
+    box-shadow:0 6px 15px rgba(34,197,94,0.3);
+}
+
+</style>
+
+<div class="container-fluid">
+<div class="invoice-card">
+
+<div class="table-responsive">
+<table class="table align-middle">
+
+<thead>
+<tr>
+<th>Invoice</th>
+<th>Date</th>
+<th>Items</th>
+<th>Amount</th>
+<th>Status</th>
+<th>Actions</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for invoice in invoices %}
+<tr>
+
+<td><strong>{{ invoice.invoice_number }}</strong></td>
+<td>{{ invoice.date|date:"d M Y" }}</td>
+<td>{{ invoice.items.all|length }}</td>
+<td><strong>₹{{ invoice.total_amount }}</strong></td>
+
+<td>
+{% if invoice.payment_status == "PAID" %}
+<span class="badge-paid">PAID</span>
+
+{% elif invoice.payment_status == "PENDING" %}
+<span class="badge-pending"
+onclick="payNow('{{ invoice.razorpay_order_id|default:'' }}','{{ invoice.total_amount }}')">
+PENDING
+</span>
+
+{% else %}
+<span class="badge-overdue"
+onclick="payNow('{{ invoice.razorpay_order_id|default:'' }}','{{ invoice.total_amount }}')">
+OVERDUE
+</span>
+{% endif %}
+</td>
+
+<td>
+
+<a href="{% url 'view_invoice' invoice.id %}" class="action-btn">
+<i class="fa-solid fa-eye"></i>
+</a>
+
+<a href="{% url 'download_invoice' invoice.id %}" class="action-btn">
+<i class="fa-solid fa-download"></i>
+</a>
+
+{% if invoice.payment_status != "PAID" %}
+<button class="pay-btn"
+onclick="payNow('{{ invoice.razorpay_order_id|default:'' }}','{{ invoice.total_amount }}')">
+<i class="fa-solid fa-wallet"></i> Pay Now
+</button>
+{% endif %}
+
+</td>
+
+</tr>
+{% endfor %}
+
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+
+/* =========================
+   CSRF TOKEN FUNCTION
+========================= */
+function getCookie(name) {
+let cookieValue = null;
+if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + "=")) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+        }
+    }
+}
+return cookieValue;
+}
+
+
+/* =========================
+   UNIVERSAL PAY FUNCTION
+========================= */
+
+let paymentRunning = false;
+
+function payNow(orderId, amount){
+
+// 🔒 prevent double click
+if(paymentRunning) return;
+paymentRunning = true;
+
+
+// 🔴 Validation
+if(!orderId){
+    alert("❌ Order ID Missing!\n\nThis happened because the Razorpay API Keys in 'settings.py' are invalid, so Razorpay couldn't generate an Order ID for this invoice.\n\n👉 Solution: Update the Keys in 'qr_billing/settings.py' and then create a NEW invoice to test the checkout.");
+    paymentRunning = false;
+    return;
+}
+
+if(!amount || amount == 0){
+    alert("Invalid amount ❌");
+    paymentRunning = false;
+    return;
+}
+
+console.log("ORDER ID:", orderId);
+console.log("AMOUNT:", amount);
+
+
+// =========================
+// RAZORPAY OPTIONS
+// =========================
+
+var options = {
+    key: "{{ RAZORPAY_KEY_ID }}",
+    amount: Math.round(parseFloat(amount) * 100),
+    currency: "INR",
+    name: "QR Billing",
+    description: "Secure Payment",
+    order_id: orderId,
+
+    handler: function (response){
+
+        console.log("PAYMENT RESPONSE:", response);
+
+        fetch("{% url 'payment_success' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken")
+            },
+            body: JSON.stringify({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+
+            paymentRunning = false;
+
+            console.log("SERVER RESPONSE:", data);
+
+            // 🔥 SMART RESPONSE HANDLE
+            if(data.type === "invoice"){
+                alert("✅ Invoice Payment Successful");
+                location.reload();
+            }
+            else if(data.type === "subscription"){
+                alert("🎉 Subscription Activated");
+                location.reload();
+            }
+            else if(data.status === "success" || data.status === "ok"){
+                alert("✅ Payment Successful");
+                location.reload();
+            }
+            else{
+                alert("❌ Payment Failed");
+            }
+
+        })
+        .catch(err => {
+            paymentRunning = false;
+            console.error("ERROR:", err);
+            alert("❌ Server Error");
+        });
+
+    }
+};
+
+
+// =========================
+// OPEN PAYMENT WINDOW
+// =========================
+
+var rzp = new Razorpay(options);
+rzp.open();
+
+}
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,218 @@
+<h2 style="text-align:center;">Business Full Report</h2>
+<p style="text-align:center;">Date: {{ now }}</p>
+
+<hr>
+
+<!-- ===================== -->
+<!-- 2 DAYS -->
+<!-- ===================== -->
+<h3>Last 2 Days Report</h3>
+<table border="1" width="100%">
+<tr>
+<th>Invoice</th>
+<th>Customer</th>
+<th>Product</th>
+<th>Amount</th>
+<th>Status</th>
+</tr>
+{% for i in data_2 %}
+<tr>
+<td>{{ i.invoice }}</td>
+<td>{{ i.customer }}</td>
+<td>{{ i.product }}</td>
+<td>{{ i.amount }}</td>
+<td>{{ i.status }}</td>
+</tr>
+{% endfor %}
+</table>
+<p><b>Total:</b> {{ total_2 }}</p>
+
+<hr>
+
+<!-- ===================== -->
+<!-- 7 DAYS -->
+<!-- ===================== -->
+<h3>Last 7 Days Report</h3>
+<table border="1" width="100%">
+<tr>
+<th>Invoice</th>
+<th>Customer</th>
+<th>Product</th>
+<th>Amount</th>
+<th>Status</th>
+</tr>
+{% for i in data_7 %}
+<tr>
+<td>{{ i.invoice }}</td>
+<td>{{ i.customer }}</td>
+<td>{{ i.product }}</td>
+<td>{{ i.amount }}</td>
+<td>{{ i.status }}</td>
+</tr>
+{% endfor %}
+</table>
+<p><b>Total:</b> {{ total_7 }}</p>
+
+<hr>
+
+<!-- ===================== -->
+<!-- 1 MONTH -->
+<!-- ===================== -->
+<h3>1 Month Report</h3>
+<table border="1" width="100%">
+<tr>
+<th>Invoice</th>
+<th>Customer</th>
+<th>Product</th>
+<th>Amount</th>
+<th>Status</th>
+</tr>
+{% for i in data_30 %}
+<tr>
+<td>{{ i.invoice }}</td>
+<td>{{ i.customer }}</td>
+<td>{{ i.product }}</td>
+<td>{{ i.amount }}</td>
+<td>{{ i.status }}</td>
+</tr>
+{% endfor %}
+</table>
+<p><b>Total:</b> {{ total_30 }}</p>
+
+<hr>
+
+<!-- ===================== -->
+<!-- 6 MONTH -->
+<!-- ===================== -->
+<h3>6 Months Report</h3>
+<table border="1" width="100%">
+<tr>
+<th>Invoice</th>
+<th>Customer</th>
+<th>Product</th>
+<th>Amount</th>
+<th>Status</th>
+</tr>
+{% for i in data_180 %}
+<tr>
+<td>{{ i.invoice }}</td>
+<td>{{ i.customer }}</td>
+<td>{{ i.product }}</td>
+<td>{{ i.amount }}</td>
+<td>{{ i.status }}</td>
+</tr>
+{% endfor %}
+</table>
+<p><b>Total:</b> {{ total_180 }}</p>
+
+<hr>
+
+<!-- ===================== -->
+<!-- 12 MONTH -->
+<!-- ===================== -->
+<h3>12 Months Report</h3>
+<table border="1" width="100%">
+<tr>
+<th>Invoice</th>
+<th>Customer</th>
+<th>Product</th>
+<th>Amount</th>
+<th>Status</th>
+</tr>
+{% for i in data_365 %}
+<tr>
+<td>{{ i.invoice }}</td>
+<td>{{ i.customer }}</td>
+<td>{{ i.product }}</td>
+<td>{{ i.amount }}</td>
+<td>{{ i.status }}</td>
+</tr>
+{% endfor %}
+</table>
+<p><b>Total:</b> {{ total_365 }}</p>
+
+<hr>
+
+<!-- ===================== -->
+<!-- PAYMENT STATUS -->
+<!-- ===================== -->
+<h3>Paid Invoices</h3>
+<table border="1" width="100%">
+{% for i in paid_data %}
+<tr>
+<td>{{ i.invoice }}</td>
+<td>{{ i.customer }}</td>
+<td>{{ i.product }}</td>
+<td>{{ i.amount }}</td>
+</tr>
+{% endfor %}
+</table>
+<p><b>Total Paid:</b> {{ paid_total }}</p>
+
+<br>
+
+<h3>Pending Invoices</h3>
+<table border="1" width="100%">
+{% for i in pending_data %}
+<tr>
+<td>{{ i.invoice }}</td>
+<td>{{ i.customer }}</td>
+<td>{{ i.product }}</td>
+<td>{{ i.amount }}</td>
+</tr>
+{% endfor %}
+</table>
+<p><b>Total Pending:</b> {{ pending_total }}</p>
+
+<br>
+
+<h3>Overdue Invoices</h3>
+<table border="1" width="100%">
+{% for i in overdue_data %}
+<tr>
+<td>{{ i.invoice }}</td>
+<td>{{ i.customer }}</td>
+<td>{{ i.product }}</td>
+<td>{{ i.amount }}</td>
+</tr>
+{% endfor %}
+</table>
+<p><b>Total Overdue:</b> {{ overdue_total }}</p>
+
+<hr>
+
+<!-- ===================== -->
+<!-- TOP PRODUCTS -->
+<!-- ===================== -->
+<h3>Top Selling Products</h3>
+<table border="1" width="100%">
+<tr>
+<th>Product</th>
+<th>Total Sold</th>
+</tr>
+{% for p in top_products %}
+<tr>
+<td>{{ p.product__name }}</td>
+<td>{{ p.total }}</td>
+</tr>
+{% endfor %}
+</table>
+
+<br>
+
+<!-- ===================== -->
+<!-- LOW PRODUCTS -->
+<!-- ===================== -->
+<h3>Low Selling Products</h3>
+<table border="1" width="100%">
+<tr>
+<th>Product</th>
+<th>Total Sold</th>
+</tr>
+{% for p in low_products %}
+<tr>
+<td>{{ p.product__name }}</td>
+<td>{{ p.total }}</td>
+</tr>
+{% endfor %}
+</table>

@@ -1,0 +1,183 @@
+{% extends "dashboard/customer_base.html" %}
+
+{% block page_title %}
+My Invoice
+{% endblock %}
+
+{% block page_subtitle %}
+Invoice {{ invoice.invoice_number }}
+{% endblock %}
+
+{% block content %}
+
+<style>
+
+.invoice-card{
+background:white;
+border-radius:18px;
+padding:40px;
+box-shadow:0 10px 35px rgba(0,0,0,0.08);
+}
+
+/* HEADER */
+
+.invoice-header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:30px;
+}
+
+.invoice-title{
+font-size:26px;
+font-weight:700;
+}
+
+.invoice-date{
+color:#6c757d;
+font-size:14px;
+margin-top:5px;
+}
+
+/* STATUS */
+
+.status-pill{
+padding:6px 18px;
+border-radius:30px;
+font-size:13px;
+font-weight:600;
+}
+
+/* TABLE */
+
+.table thead{
+background:#f8fafc;
+}
+
+.table th{
+font-weight:600;
+padding:15px;
+}
+
+.table td{
+padding:15px;
+vertical-align:middle;
+}
+
+/* TOTAL SECTION */
+
+.total-section{
+display:flex;
+justify-content:flex-end;
+margin-top:30px;
+}
+
+.total-box{
+background:#f8fafc;
+padding:25px 35px;
+border-radius:12px;
+border:1px solid #e5e7eb;
+text-align:right;
+}
+
+.total-label{
+font-size:14px;
+color:#6b7280;
+}
+
+.total-amount{
+font-size:28px;
+font-weight:700;
+color:#16a34a;
+margin-top:4px;
+}
+
+.product-name{
+font-weight:500;
+}
+
+</style>
+
+<div class="invoice-card">
+
+<div class="invoice-header">
+
+<div>
+
+<div class="invoice-title">
+Invoice {{ invoice.invoice_number }}
+</div>
+
+<div class="invoice-date">
+{{ invoice.date }}
+</div>
+
+</div>
+
+<div>
+
+{% if invoice.payment_status == "PAID" %}
+<span class="badge bg-success status-pill">Paid</span>
+
+{% elif invoice.payment_status == "PENDING" %}
+<span class="badge bg-warning text-dark status-pill">Pending</span>
+
+{% else %}
+<span class="badge bg-danger status-pill">Overdue</span>
+{% endif %}
+
+</div>
+
+</div>
+
+<hr>
+
+<h6 class="fw-semibold mb-3">Products</h6>
+
+<table class="table">
+
+<thead>
+<tr>
+<th>Product</th>
+<th width="120">Qty</th>
+<th width="150">Price</th>
+<th width="150">Subtotal</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for item in invoice.items.all %}
+
+<tr>
+<td class="product-name">{{ item.product.name }}</td>
+<td>{{ item.quantity }}</td>
+<td>₹{{ item.product.price }}</td>
+<td><strong>₹{{ item.subtotal }}</strong></td>
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+<div class="total-section">
+
+<div class="total-box">
+
+<div class="total-label">
+Total Amount
+</div>
+
+<div class="total-amount">
+₹{{ invoice.total_amount }}
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,166 @@
+{% extends "dashboard/base.html" %}
+
+
+{% block content %}
+
+<div class="container-fluid">
+
+
+
+<!-- TOP SUMMARY CARDS -->
+<div class="row g-4 mb-4">
+
+<div class="col-md-4">
+<div class="report-card">
+<h6>Total Revenue</h6>
+<h3>₹{{ total_revenue|floatformat:2 }}</h3>
+</div>
+</div>
+
+<div class="col-md-4">
+<div class="report-card">
+<h6>Collected</h6>
+<h3 class="text-success">₹{{ collected|floatformat:2 }}</h3>
+</div>
+</div>
+
+<div class="col-md-4">
+<div class="report-card">
+<h6>Outstanding</h6>
+<h3 class="text-warning">₹{{ outstanding|floatformat:2 }}</h3>
+</div>
+</div>
+
+</div>
+
+<!-- CHARTS -->
+<div class="row g-4">
+
+<!-- Invoice Chart -->
+<div class="col-md-6">
+<div class="report-card chart-card">
+
+<h5>Invoice Status</h5>
+<hr>
+
+<canvas id="invoiceChart"></canvas>
+
+
+
+</div>
+</div>
+
+<!-- Product Chart -->
+<div class="col-md-6">
+<div class="report-card chart-card">
+
+<h5>Products by Category</h5>
+<hr>
+
+<canvas id="productChart"></canvas>
+
+<!-- ✅ FIXED BOTTOM RIGHT -->
+<a href="{% url 'report_list' %}" class="view-all">View All →</a>
+
+</div>
+</div>
+
+</div>
+
+</div>
+
+<style>
+
+.report-card{
+background:white;
+padding:20px;
+border-radius:12px;
+box-shadow:0 2px 10px rgba(0,0,0,0.05);
+}
+
+/* 🔥 IMPORTANT FOR POSITION */
+.chart-card{
+position:relative;
+padding-bottom:50px; /* space for button */
+}
+
+/* 🔥 PERFECT FIX POSITION */
+.view-all{
+position:absolute;
+bottom:15px;
+right:20px;
+font-size:14px;
+color:#10b981;
+text-decoration:none;
+font-weight:500;
+}
+
+.view-all:hover{
+text-decoration:underline;
+}
+
+canvas{
+max-height:300px;
+}
+
+.report-card h6{
+font-size:14px;
+color:#6b7280;
+}
+
+.report-card h5{
+font-weight:600;
+}
+
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+
+const invoiceCtx = document.getElementById('invoiceChart');
+
+new Chart(invoiceCtx,{
+type:'doughnut',
+data:{
+labels:['Paid','Pending','Overdue'],
+datasets:[{
+data:[{{ paid }}, {{ pending }}, {{ overdue }}],
+backgroundColor:['#22c55e','#f59e0b','#ef4444'],
+borderWidth:0
+}]
+},
+options:{
+cutout:'65%',
+plugins:{ legend:{ position:'top' }},
+animation:{ duration:1500 }
+}
+});
+
+const productCtx = document.getElementById('productChart').getContext('2d');
+
+const gradient = productCtx.createLinearGradient(0,0,0,400);
+gradient.addColorStop(0,'#06b6d4');
+gradient.addColorStop(1,'#22c55e');
+
+new Chart(productCtx,{
+type:'bar',
+data:{
+labels: {{ categories|safe }},
+datasets:[{
+data: {{ counts|safe }},
+backgroundColor: gradient,
+borderRadius:10
+}]
+},
+options:{
+plugins:{ legend:{display:false}},
+scales:{ y:{beginAtZero:true}}
+}
+});
+
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,317 @@
+{% extends "dashboard/base.html" %}
+{% block content %}
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<style>
+body{background:#f5f7fb;}
+
+.add-btn{
+    background:#198754;
+    border:none;
+    padding:8px 16px;
+    border-radius:6px;
+    color:white;
+}
+
+/* CARD */
+.subscription-card{
+    border-radius:20px;
+    background:white;
+    box-shadow:0 10px 25px rgba(0,0,0,0.08);
+    padding:18px;
+    transition:0.3s;
+}
+.subscription-card:hover{
+    transform:translateY(-5px);
+}
+
+.product-title{
+    font-weight:700;
+    font-size:18px;
+}
+
+.sub-info{
+    font-size:14px;
+    color:#64748b;
+}
+
+/* BADGES */
+.plan-badge{
+    background:#eef2ff;
+    color:#4338ca;
+    padding:4px 10px;
+    border-radius:20px;
+    font-size:12px;
+}
+
+.status-active{
+    background:#dcfce7;
+    color:#16a34a;
+    padding:5px 12px;
+    border-radius:20px;
+    font-size:12px;
+}
+
+/* PAYMENT STATUS */
+.payment-paid{
+    color:#16a34a;
+    font-size:13px;
+    font-weight:600;
+}
+.payment-pending{
+    color:#f59e0b;
+    font-size:13px;
+    font-weight:600;
+}
+
+/* ACTION BUTTONS */
+.action-btn{
+    width:40px;height:40px;
+    border-radius:10px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:white;
+}
+.pause-btn{background:#f59e0b;}
+.play-btn{background:#22c55e;}
+.cancel-btn{background:#ef4444;}
+
+/* PRICE BOX */
+.price-box{
+    background:#f8fafc;
+    border-radius:12px;
+    padding:12px;
+    margin-top:10px;
+}
+.price-row{
+    display:flex;
+    justify-content:space-between;
+    font-size:14px;
+    margin-bottom:6px;
+}
+.total-row{
+    border-top:1px dashed #ccc;
+    padding-top:6px;
+    font-weight:600;
+}
+</style>
+
+<div class="container mt-4">
+
+<!-- ADD BUTTON -->
+<div class="d-flex justify-content-end mb-3">
+    <button class="add-btn" data-bs-toggle="modal" data-bs-target="#addModal">
+        <i class="bi bi-plus-lg"></i> Add Subscription
+    </button>
+</div>
+
+<!-- ================= MODAL ================= -->
+<div class="modal fade" id="addModal">
+<div class="modal-dialog modal-dialog-centered">
+<div class="modal-content p-3">
+
+<form method="POST">
+{% csrf_token %}
+
+<h5 class="mb-3">Add Subscription</h5>
+
+<label>User</label>
+<select name="user" class="form-select mb-2">
+    {% for u in users %}
+    <option value="{{ u.id }}">{{ u.username }}</option>
+    {% endfor %}
+</select>
+
+<label>Product</label>
+<select name="product" class="form-select mb-2" id="product">
+    <option value="">Select Product</option>
+    {% for p in products %}
+    <option value="{{ p.id }}" data-price="{{ p.price }}">
+        {{ p.name }}
+    </option>
+    {% endfor %}
+</select>
+
+<label>Plan</label>
+<select name="plan" class="form-select mb-2" id="plan">
+    <option value="WEEKLY">Weekly</option>
+    <option value="MONTHLY">Monthly</option>
+</select>
+
+<label>Quantity</label>
+<input type="number" id="qty" name="quantity" value="1" class="form-control mb-3">
+
+<!-- PRICE -->
+<div class="price-box">
+    <div class="price-row">
+        <span>Subtotal</span>
+        <strong id="subtotal">--</strong>
+    </div>
+    <div class="price-row text-danger">
+        <span>Discount</span>
+        <strong id="discount">--</strong>
+    </div>
+    <div class="price-row total-row">
+        <span>Total</span>
+        <strong id="total">--</strong>
+    </div>
+</div>
+
+<div class="text-end mt-3">
+    <button class="btn btn-success">Save</button>
+</div>
+
+</form>
+
+</div>
+</div>
+</div>
+
+<!-- ================= CARDS ================= -->
+<div class="row">
+
+{% for sub in subscriptions %}
+
+<div class="col-md-4 mb-4">
+<div class="subscription-card">
+
+<!-- HEADER -->
+<div class="d-flex justify-content-between align-items-center">
+
+<div class="product-title">
+    <i class="bi bi-bag-heart-fill text-success me-1"></i>
+    {{ sub.product.name }}
+</div>
+
+<div class="text-end">
+
+    <!-- STATUS -->
+    <div>
+        <span class="status-active">{{ sub.status }}</span>
+    </div>
+
+    <!-- PAYMENT -->
+    <div>
+    {% if sub.payment_status == "PAID" %}
+        <span class="payment-paid">
+            <i class="bi bi-check-circle-fill"></i> Paid
+        </span>
+    {% else %}
+        <span class="payment-pending">
+            <i class="bi bi-clock-fill"></i> Pending
+        </span>
+    {% endif %}
+    </div>
+
+</div>
+
+</div>
+
+<div class="sub-info mt-2">
+    <i class="bi bi-person-circle"></i> {{ sub.get_customer_name }}
+</div>
+
+<div class="sub-info">
+    <i class="bi bi-arrow-repeat"></i>
+    <span class="plan-badge">{{ sub.plan_type }}</span>
+</div>
+
+<div class="sub-info">
+    <i class="bi bi-clock-history"></i> {{ sub.duration_days }} Days
+</div>
+
+<div class="sub-info mb-2">
+    {{ sub.start_date }} → {{ sub.end_date }}
+</div>
+
+<!-- PRICE -->
+<div class="price-box">
+    <div class="price-row">
+        <span>Subtotal</span>
+        <strong>₹{{ sub.subtotal }}</strong>
+    </div>
+
+    <div class="price-row text-danger">
+        <span>Discount</span>
+        <strong>- ₹{{ sub.discount }}</strong>
+    </div>
+
+    <div class="price-row total-row">
+        <span>Total</span>
+        <strong>₹{{ sub.total_amount }}</strong>
+    </div>
+</div>
+
+<!-- ACTIONS -->
+<div class="d-flex justify-content-center gap-2 mt-3">
+
+<a href="{% url 'pause_subscription' sub.id %}" class="action-btn pause-btn">
+    <i class="bi bi-pause-fill"></i>
+</a>
+
+<a href="{% url 'resume_subscription' sub.id %}" class="action-btn play-btn">
+    <i class="bi bi-play-fill"></i>
+</a>
+
+<a href="{% url 'cancel_subscription' sub.id %}" class="action-btn cancel-btn">
+    <i class="bi bi-x-lg"></i>
+</a>
+
+</div>
+
+</div>
+</div>
+
+{% endfor %}
+
+</div>
+
+</div>
+
+<!-- ================= JS ================= -->
+<script>
+
+const product = document.getElementById("product");
+const qty = document.getElementById("qty");
+const plan = document.getElementById("plan");
+
+function calc(){
+
+    let price = parseFloat(product.selectedOptions[0]?.dataset.price || 0);
+    let quantity = parseInt(qty.value || 0);
+
+    if(price === 0 || quantity === 0){
+        subtotal.innerText = "--";
+        discount.innerText = "--";
+        total.innerText = "--";
+        return;
+    }
+
+    let days = (plan.value === "WEEKLY") ? 7 : 30;
+
+    let sub = price * quantity * days;
+    let dis = (plan.value === "WEEKLY") ? sub * 0.05 : sub * 0.10;
+    let tot = sub - dis;
+
+    subtotal.innerText = "₹" + sub.toFixed(2);
+    discount.innerText = "₹" + dis.toFixed(2);
+    total.innerText = "₹" + tot.toFixed(2);
+}
+
+// EVENTS
+product.addEventListener("change", calc);
+qty.addEventListener("input", calc);
+plan.addEventListener("change", calc);
+
+// RESET
+document.getElementById("addModal").addEventListener("show.bs.modal", function () {
+    subtotal.innerText = "--";
+    discount.innerText = "--";
+    total.innerText = "--";
+});
+
+</script>
+
+{% endblock %}
