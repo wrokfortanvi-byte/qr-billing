@@ -6,3 +6,4 @@ razorpay
 twilio
 google-generativeai
 reportlab
+python-dateutil
