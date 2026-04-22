@@ -248,17 +248,16 @@ function payNow(btn, orderId, amount){
             })
             .then(res => res.json())
             .then(data => {
-
                 console.log("SERVER RESPONSE:", data);
-
                 paymentRunning = false;
 
-                if(data.status === "success"){
+                if(data.status === "success" || data.status === "ok"){
                     alert("✅ Payment Successful");
                     location.reload();
                 }else{
-                    alert("❌ Payment verification failed");
+                    alert("❌ " + (data.msg || "Payment verification failed"));
                     btn.disabled = false;
+                    btn.innerHTML = "Pay Now";
                 }
             })
             .catch((err) => {
@@ -266,6 +265,7 @@ function payNow(btn, orderId, amount){
                 alert("❌ Server Error");
                 btn.disabled = false;
                 paymentRunning = false;
+                btn.innerHTML = "Pay Now";
             });
 
         },

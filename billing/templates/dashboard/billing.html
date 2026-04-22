@@ -173,12 +173,16 @@
 {% if invoice.payment_status == "PAID" %}
 <span class="status-paid">PAID</span>
 {% elif invoice.payment_status == "PENDING" %}
-<span class="status-pending">
-PENDING
+<span class="status-pending" style="cursor:pointer;" 
+      onclick="payInvoice('{{ invoice.razorpay_order_id }}', '{{ invoice.total_amount }}')">
+    PENDING
 </span>
 
 {% elif invoice.payment_status == "OVERDUE" %}
-<span class="status-overdue">OVERDUE</span>
+<span class="status-overdue" style="cursor:pointer;" 
+      onclick="payInvoice('{{ invoice.razorpay_order_id }}', '{{ invoice.total_amount }}')">
+    OVERDUE
+</span>
 {% endif %}
 </td>
 
@@ -418,10 +422,11 @@ body: JSON.stringify({
 
 paymentRunning = false;
 
-if(data.status === "ok" || data.status === "already processed"){
-location.reload();
+if(data.status === "success" || data.status === "ok" || data.status === "already processed"){
+    alert("✅ Payment Successful");
+    location.reload();
 } else {
-alert("Something went wrong ❌");
+    alert("❌ " + (data.msg || "Something went wrong"));
 }
 
 })

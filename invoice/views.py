@@ -246,6 +246,11 @@ def payment_success(request):
         logger = logging.getLogger(__name__)
 
         data = json.loads(request.body)
+        
+        # 📝 TEMPORARY DEBUG LOG
+        with open("payment_debug.log", "a") as f:
+            f.write(f"\n[{timezone.now()}] CALLBACK RECEIVED: {data}\n")
+
         logger.info(f"PAYMENT CALLBACK DATA: {data}")
 
         client = razorpay.Client(
@@ -255,44 +260,55 @@ def payment_success(request):
         # =========================
         # VERIFY SIGNATURE
         # =========================
-        client.utility.verify_payment_signature({
-            'razorpay_order_id': data.get("razorpay_order_id"),
-            'razorpay_payment_id': data.get("razorpay_payment_id"),
-            'razorpay_signature': data.get("razorpay_signature"),
-        })
+        razorpay_order_id = data.get("razorpay_order_id")
+        razorpay_payment_id = data.get("razorpay_payment_id")
+        razorpay_signature = data.get("razorpay_signature")
+
+        if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
+            logger.error("Missing payment data in callback")
+            return JsonResponse({"status": "error", "msg": "Missing payment details"})
+
+        try:
+            client.utility.verify_payment_signature({
+                'razorpay_order_id': razorpay_order_id,
+                'razorpay_payment_id': razorpay_payment_id,
+                'razorpay_signature': razorpay_signature,
+            })
+        except Exception as sig_err:
+            logger.error(f"Signature Verification Failed: {str(sig_err)}")
+            return JsonResponse({"status": "error", "msg": "Invalid payment signature"})
 
         with transaction.atomic():
 
-            order_id = data.get("razorpay_order_id")
-            payment_id = data.get("razorpay_payment_id")
-
-            order = client.order.fetch(order_id)
-            notes = order.get("notes") or {}
+            # 🔍 FETCH ORDER TO GET NOTES (IF ANY)
+            try:
+                order = client.order.fetch(razorpay_order_id)
+                notes = order.get("notes") or {}
+            except Exception as e:
+                logger.warning(f"Could not fetch order notes: {str(e)}")
+                notes = {}
 
             invoice_id = notes.get("invoice_id")
             subscription_id = notes.get("subscription_id")
 
+            invoice = None
+            subscription = None
+
             # =====================================================
-            # 🧾 INVOICE FLOW
+            # 🧾 1. FIND INVOICE (By ID or Order ID)
             # =====================================================
             if invoice_id:
+                invoice = Invoice.objects.select_for_update().filter(id=int(invoice_id)).first()
+            
+            if not invoice:
+                invoice = Invoice.objects.select_for_update().filter(razorpay_order_id=razorpay_order_id).first()
 
-                invoice = Invoice.objects.select_for_update().filter(
-                    id=int(invoice_id)
-                ).first()
-
-                if not invoice:
-                    return JsonResponse({"status": "error", "msg": "Invoice not found"})
-
+            if invoice:
                 if invoice.payment_status == "PAID":
-                    return JsonResponse({
-                        "status": "success",
-                        "type": "invoice",
-                        "msg": "Already paid"
-                    })
+                    return JsonResponse({"status": "success", "type": "invoice", "msg": "Already paid"})
 
                 invoice.payment_status = "PAID"
-                invoice.razorpay_payment_id = payment_id
+                invoice.razorpay_payment_id = razorpay_payment_id
                 invoice.save()
 
                 create_notification(
@@ -302,79 +318,55 @@ def payment_success(request):
                     "success"
                 )
 
-                # =========================
-                # 📲 WHATSAPP FIXED SAFE
-                # =========================
+                # WhatsApp Notification
                 try:
                     phone = getattr(invoice.customer, "phone", None)
-
-                    if not phone:
-                        print("❌ Phone not found:", invoice.customer.username)
-                    else:
+                    if phone:
                         phone = str(phone).strip().replace(" ", "")
-
-                        if phone.startswith("+91"):
-                            phone = phone[3:]
-                        elif phone.startswith("91"):
-                            phone = phone[2:]
-
+                        if phone.startswith("+91"): phone = phone[3:]
+                        elif phone.startswith("91"): phone = phone[2:]
                         phone = "+91" + phone
 
                         message = (
-    f"✅ *PAYMENT SUCCESSFUL*\n"
-    f"━━━━━━━━━━━━━━━━━━━━\n"
-    f"👤 *Customer:* {invoice.customer.username}\n"
-    f"📄 *Invoice No:* {invoice.invoice_number}\n"
-    f"💰 *Paid Amount:* ₹{invoice.total_amount}\n"
-    f"🧾 *Payment ID:* {payment_id}\n"
-    f"📅 *Date:* {timezone.localtime().strftime('%d %b %Y')}\n"
-    f"━━━━━━━━━━━━━━━━━━━━\n"
-    f"🎉 Your payment has been received successfully!\n"
-    f"🙏 Thank you for your business!\n"
-    f"🏢 *QR Billing Assistant*"
-)
+                            f"✅ *PAYMENT SUCCESSFUL*\n"
+                            f"━━━━━━━━━━━━━━━━━━━━\n"
+                            f"👤 *Customer:* {invoice.customer.username}\n"
+                            f"📄 *Invoice No:* {invoice.invoice_number}\n"
+                            f"💰 *Paid Amount:* ₹{invoice.total_amount}\n"
+                            f"🧾 *Payment ID:* {razorpay_payment_id}\n"
+                            f"📅 *Date:* {timezone.localtime().strftime('%d %b %Y')}\n"
+                            f"━━━━━━━━━━━━━━━━━━━━\n"
+                            f"🎉 Your payment has been received successfully!\n"
+                            f"🙏 Thank you for your business!\n"
+                            f"🏢 *QR Billing Assistant*"
+                        )
                         send_whatsapp_message(phone, message)
+                except Exception as ws_e:
+                    logger.error(f"WhatsApp Success Error: {str(ws_e)}")
 
-                except Exception as e:
-                    print("❌ WhatsApp Error:", str(e))
-
-                # =========================
-                # ADMIN NOTIFICATION
-                # =========================
+                # Admin Notification
                 admins = User.objects.filter(is_staff=True)
-
                 for admin in admins:
-                    create_notification(
-                        admin,
-                        "Payment Received",
-                        f"{invoice.customer.username} paid invoice {invoice.invoice_number}",
-                        "success"
-                    )
+                    create_notification(admin, "Payment Received", f"{invoice.customer.username} paid invoice {invoice.invoice_number}", "success")
 
                 return JsonResponse({"status": "success", "type": "invoice"})
 
             # =====================================================
-            # 📦 SUBSCRIPTION FLOW
+            # 📦 2. FIND SUBSCRIPTION (By ID or Order ID)
             # =====================================================
-            elif subscription_id:
+            if subscription_id:
+                subscription = Subscription.objects.select_for_update().filter(id=int(subscription_id)).first()
 
-                subscription = Subscription.objects.select_for_update().filter(
-                    id=int(subscription_id)
-                ).first()
+            if not subscription:
+                subscription = Subscription.objects.select_for_update().filter(razorpay_order_id=razorpay_order_id).first()
 
-                if not subscription:
-                    return JsonResponse({"status": "error", "msg": "Subscription not found"})
-
+            if subscription:
                 if subscription.is_paid:
-                    return JsonResponse({
-                        "status": "success",
-                        "type": "subscription",
-                        "msg": "Already active"
-                    })
+                    return JsonResponse({"status": "success", "type": "subscription", "msg": "Already active"})
 
                 subscription.status = "ACTIVE"
                 subscription.is_paid = True
-                subscription.razorpay_payment_id = payment_id
+                subscription.razorpay_payment_id = razorpay_payment_id
                 subscription.save()
 
                 create_notification(
@@ -385,33 +377,28 @@ def payment_success(request):
                 )
 
                 admins = User.objects.filter(is_staff=True)
-
                 for admin in admins:
-                    create_notification(
-                        admin,
-                        "Subscription Activated",
-                        f"{subscription.user.username} activated subscription",
-                        "success"
-                    )
+                    create_notification(admin, "Subscription Activated", f"{subscription.user.username} activated subscription", "success")
 
                 return JsonResponse({"status": "success", "type": "subscription"})
 
             # =========================
             # NO DATA FOUND
             # =========================
+            logger.error(f"Payment verified but no invoice/subscription found for Order ID: {razorpay_order_id}")
             return JsonResponse({
                 "status": "error",
-                "msg": "No invoice or subscription found in notes"
+                "msg": "Order verification failed: No matching invoice or subscription found."
             })
 
     except Exception as e:
-        print("❌ FULL ERROR TRACE:")
-        print(traceback.format_exc())
-
+        logger.error(f"PAYMENT SUCCESS ERROR: {str(e)}")
+        logger.error(traceback.format_exc())
         return JsonResponse({
             "status": "error",
-            "msg": str(e)
+            "msg": "Internal server error during payment verification"
         })
+
 @login_required
 def view_invoice(request, invoice_id):
     invoice = get_object_or_404(

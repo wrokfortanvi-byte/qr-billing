@@ -218,43 +218,6 @@ def customer_subscriptions(request):
     })
 import razorpay
 
-def payment_success(request):
-
-    if request.method == "POST":
-
-        data = json.loads(request.body)
-
-        order_id = data.get("razorpay_order_id")
-        payment_id = data.get("razorpay_payment_id")
-        signature = data.get("razorpay_signature")
-
-        client = razorpay.Client(
-            auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
-        )
-
-        try:
-            # 🔥 VERIFY SIGNATURE
-            client.utility.verify_payment_signature({
-                'razorpay_order_id': order_id,
-                'razorpay_payment_id': payment_id,
-                'razorpay_signature': signature
-            })
-
-            # ✅ ONLY AFTER SUCCESS
-            sub = Subscription.objects.filter(
-                razorpay_order_id=order_id
-            ).first()
-
-            if sub:
-                sub.is_paid = True
-                sub.razorpay_payment_id = payment_id
-                sub.save()
-
-            return JsonResponse({"status": "success"})
-
-        except Exception as e:
-            print("❌ SIGNATURE ERROR:", e)
-            return JsonResponse({"status": "failed"})
 # ==========================================
 # PAUSE / RESUME / CANCEL
 # ==========================================

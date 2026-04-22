@@ -14,6 +14,6 @@ urlpatterns = [
     path("my-invoices/", views.my_invoices, name="my_invoices"),
     path("downloads/", views.customer_downloads, name="customer_downloads"),
      #🔥 ADD THIS LINE
-
+    
 
 ]
