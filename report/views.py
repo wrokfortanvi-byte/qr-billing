@@ -8,7 +8,7 @@ from invoice.models import Invoice
 from products.models import Product
 
 from django.template.loader import get_template
-from xhtml2pdf import pisa
+# from xhtml2pdf import pisa
 from django.http import HttpResponse, JsonResponse
 
 from datetime import timedelta
@@ -337,8 +337,9 @@ def generate_pdf(request, report_id):
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{title}.pdf"'
 
-    pisa.CreatePDF(html, dest=response)
-    return response
+    # pisa.CreatePDF(html, dest=response)
+    return HttpResponse("PDF generation is currently disabled (xhtml2pdf missing).")
+    # return response
 
 
 # =========================
@@ -362,7 +363,7 @@ def download_all_reports(request):
         })
 
         pdf_buffer = io.BytesIO()
-        pisa.CreatePDF(html, dest=pdf_buffer)
+        # pisa.CreatePDF(html, dest=pdf_buffer)
 
         zip_file.writestr(f"{title}.pdf", pdf_buffer.getvalue())
 
