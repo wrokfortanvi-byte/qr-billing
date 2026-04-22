@@ -7,8 +7,11 @@ import json
 from invoice.models import Invoice
 from products.models import Product
 
-from django.template.loader import get_template
-# from xhtml2pdf import pisa
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from django.http import HttpResponse, JsonResponse
 
 from datetime import timedelta
@@ -310,11 +313,6 @@ def get_report_data(report_id):
 
     return None, None, None
 
-# =========================
-# PDF GENERATE
-# =========================
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 
 def generate_pdf(request, report_id):
 
@@ -323,23 +321,64 @@ def generate_pdf(request, report_id):
     if not data:
         return HttpResponse("Invalid Report")
 
-    font_path = os.path.join(settings.BASE_DIR, "invoice", "font", "DejaVuSans.ttf")
-    pdfmetrics.registerFont(TTFont('DejaVu', font_path))
-
-    template = get_template("dashboard/single_report.html")
-    html = template.render({
-        "title": title,
-        "data": data,
-        "total": total,
-        "now": now(),
-    })
-
     response = HttpResponse(content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{title}.pdf"'
 
-    # pisa.CreatePDF(html, dest=response)
-    return HttpResponse("PDF generation is currently disabled (xhtml2pdf missing).")
-    # return response
+    p = canvas.Canvas(response, pagesize=A4)
+    width, height = A4
+    rupee = u"\u20B9"
+
+    font_path = os.path.join(settings.BASE_DIR, "invoice", "font", "DejaVuSans.ttf")
+    pdfmetrics.registerFont(TTFont('DejaVu', font_path))
+
+    y = height - 50
+
+    # Header
+    p.setFont("DejaVu", 16)
+    p.drawCentredString(width/2, y, "QR Billing Assistant")
+    y -= 25
+    p.setFont("DejaVu", 14)
+    p.drawCentredString(width/2, y, title)
+    y -= 20
+    p.setFont("DejaVu", 10)
+    p.drawCentredString(width/2, y, f"Generated on: {now().strftime('%d %b %Y %H:%M')}")
+    y -= 40
+
+    # Table Header
+    p.setFillColor(colors.lightgrey)
+    p.rect(50, y, width-100, 20, fill=1)
+    p.setFillColor(colors.black)
+    p.setFont("DejaVu", 10)
+    
+    p.drawString(55, y+5, "Invoice/Ref")
+    p.drawString(150, y+5, "Customer")
+    p.drawString(300, y+5, "Amount")
+    p.drawString(400, y+5, "Status")
+    y -= 25
+
+    # Data Rows
+    for item in data:
+        if y < 80:
+            p.showPage()
+            y = height - 50
+            p.setFont("DejaVu", 10)
+
+        p.drawString(55, y, str(item['invoice']))
+        p.drawString(150, y, str(item['customer'])[:25])
+        p.drawString(300, y, f"{rupee}{item['amount']}")
+        p.drawString(400, y, str(item['status']))
+        
+        y -= 20
+        p.setStrokeColor(colors.lightgrey)
+        p.line(50, y+15, width-50, y+15)
+
+    # Total
+    y -= 20
+    p.setFont("DejaVu", 12)
+    p.drawRightString(width-55, y, f"Total Amount: {rupee}{total}")
+
+    p.save()
+    return response
 
 
 # =========================
@@ -353,18 +392,44 @@ def download_all_reports(request):
     for report_id in range(1, 11):
 
         data, total, title = get_report_data(report_id)
-
-        template = get_template("dashboard/single_report.html")
-        html = template.render({
-            "title": title,
-            "data": data,
-            "total": total,
-            "now": now(),
-        })
+        if not data: continue
 
         pdf_buffer = io.BytesIO()
-        # pisa.CreatePDF(html, dest=pdf_buffer)
+        p = canvas.Canvas(pdf_buffer, pagesize=A4)
+        width, height = A4
+        rupee = u"\u20B9"
 
+        font_path = os.path.join(settings.BASE_DIR, "invoice", "font", "DejaVuSans.ttf")
+        pdfmetrics.registerFont(TTFont('DejaVu', font_path))
+
+        y = height - 50
+        p.setFont("DejaVu", 16)
+        p.drawCentredString(width/2, y, "QR Billing Assistant")
+        y -= 25
+        p.setFont("DejaVu", 14)
+        p.drawCentredString(width/2, y, title)
+        y -= 40
+
+        # Table
+        p.setFillColor(colors.lightgrey)
+        p.rect(50, y, width-100, 20, fill=1)
+        p.setFillColor(colors.black)
+        p.setFont("DejaVu", 10)
+        p.drawString(55, y+5, "Ref")
+        p.drawString(150, y+5, "Customer")
+        p.drawString(300, y+5, "Amount")
+        p.drawString(400, y+5, "Status")
+        y -= 25
+
+        for item in data:
+            if y < 50: p.showPage(); y = height - 50
+            p.drawString(55, y, str(item['invoice']))
+            p.drawString(150, y, str(item['customer'])[:25])
+            p.drawString(300, y, f"{rupee}{item['amount']}")
+            p.drawString(400, y, str(item['status']))
+            y -= 20
+
+        p.save()
         zip_file.writestr(f"{title}.pdf", pdf_buffer.getvalue())
 
     zip_file.close()
