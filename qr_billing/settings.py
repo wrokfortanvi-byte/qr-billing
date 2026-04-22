@@ -27,15 +27,9 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-u%148yh+p!vkp#h_93v&_oz6@p-w@6(s=#the=*b@#220%okzh')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = [
-    "127.0.0.1",
-    "localhost",
-    "valiant-skipping-purging.ngrok-free.dev",
-    "dry-laws-create.loca.lt",
-    ".loca.lt"
-]
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -61,6 +55,7 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = 'accounts.User'
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # 👈 ये line ADD करो
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -134,10 +129,13 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+# ✅ Static + Media FIX
+STATIC_URL = '/static/'
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
 
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET")
@@ -147,10 +145,7 @@ TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_WHATSAPP_NUMBER = os.getenv("TWILIO_WHATSAPP_NUMBER", "whatsapp:+14155238886")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-
+# ❌ CSRF अभी simple रखो (issue avoid करने के लिए)
 CSRF_TRUSTED_ORIGINS = [
-    "https://valiant-skipping-purging.ngrok-free.dev",
-    "https://*.ngrok-free.dev",
-    "https://dry-laws-create.loca.lt",
-    "https://*.loca.lt"
+    "https://*.onrender.com"
 ]
