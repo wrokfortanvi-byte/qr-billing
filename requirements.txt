@@ -7,4 +7,3 @@ twilio
 google-generativeai
 reportlab
 python-dateutil
-xhtml2pdf
