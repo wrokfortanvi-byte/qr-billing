@@ -390,6 +390,7 @@ def download_subscription_pdf(request, id):
     return response
 
 def generate_ai_expiry_message(sub):
+    try:
         if not settings.GEMINI_API_KEY:
             return "Your subscription is ending soon. Please renew."
 
