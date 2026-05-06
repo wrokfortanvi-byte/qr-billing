@@ -22,7 +22,7 @@ from invoice.models import Invoice
 from notifications.models import Notification
 import google.generativeai as genai
 
-genai.configure(api_key=settings.GEMINI_API_KEY)
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
 
 
@@ -390,7 +390,7 @@ def download_subscription_pdf(request, id):
 
 def generate_ai_expiry_message(sub):
     try:
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel("gemini-1.5-flash")
 
         prompt = f"""
         Write a short friendly reminder.
@@ -417,7 +417,7 @@ def generate_ai_upgrade_suggestion(sub):
     Generate a product-specific, catchy AI upgrade suggestion.
     """
     try:
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel("gemini-1.5-flash")
 
         # 🔥 QUICK LOGIC FIRST
         if sub.plan_type.upper() == "WEEKLY":
