@@ -394,7 +394,7 @@ def generate_ai_expiry_message(sub):
         if not settings.GEMINI_API_KEY:
             return "Your subscription is ending soon. Please renew."
 
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.0-flash")
 
         prompt = f"""
         Write a short friendly reminder.
@@ -424,7 +424,7 @@ def generate_ai_upgrade_suggestion(sub):
         if not settings.GEMINI_API_KEY:
              return f"Upgrade your {sub.product.name} plan for better savings."
 
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.0-flash")
 
         # 🔥 QUICK LOGIC FIRST
         if sub.plan_type.upper() == "WEEKLY":
