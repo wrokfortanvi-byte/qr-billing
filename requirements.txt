@@ -4,6 +4,6 @@ whitenoise
 python-dotenv
 razorpay
 twilio
-google-generativeai
+google-generativeai>=0.5.0
 reportlab
 python-dateutil
