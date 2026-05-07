@@ -29,8 +29,7 @@ from django.conf import settings
 from django.conf import settings
 import google.generativeai as genai
 
-if settings.GEMINI_API_KEY:
-    genai.configure(api_key=settings.GEMINI_API_KEY)
+# genai.configure moved inside functions for safety
 
 
 
@@ -470,10 +469,11 @@ def ai_suggestions(request):
         - Keep it simple
         """
 
-        # 🔥 SAFETY CHECK
+        # 🔥 SAFETY CHECK & CONFIG
         if not settings.GEMINI_API_KEY:
             raise Exception("API Key missing! Please set GOOGLE_API_KEY in Render Environment settings.")
 
+        genai.configure(api_key=settings.GEMINI_API_KEY)
         model = genai.GenerativeModel("gemini-1.5-flash")
         response = model.generate_content(prompt)
 
