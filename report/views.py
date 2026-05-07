@@ -440,45 +440,44 @@ def download_all_reports(request):
 
     return response
 def ai_suggestions(request):
-    invoices = Invoice.objects.all()
-    subscriptions = Subscription.objects.all()
-
-    total_revenue = (
-        invoices.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    ) + (
-        subscriptions.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-    )
-
-    pending = invoices.filter(payment_status='PENDING').count()
-    overdue = invoices.filter(payment_status='OVERDUE').count()
-    paid = invoices.filter(payment_status='PAID').count()
-
-    prompt = f"""
-    You are a smart business assistant for billing software.
-
-    Analyze this data and give 4 short suggestions:
-
-    Total Revenue: {total_revenue}
-    Paid Invoices: {paid}
-    Pending Invoices: {pending}
-    Overdue Invoices: {overdue}
-
-    Rules:
-    - Give short points
-    - Mix positive + warning + improvement
-    - Keep it simple
-    """
-
     try:
-        # 🔥 UPDATED MODEL
+        invoices = Invoice.objects.all()
+        subscriptions = Subscription.objects.all()
+
+        total_revenue = (
+            invoices.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        ) + (
+            subscriptions.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        )
+
+        pending = invoices.filter(payment_status='PENDING').count()
+        overdue = invoices.filter(payment_status='OVERDUE').count()
+        paid = invoices.filter(payment_status='PAID').count()
+
+        prompt = f"""
+        You are a smart business assistant for billing software.
+
+        Analyze this data and give 4 short suggestions:
+
+        Total Revenue: {total_revenue}
+        Paid Invoices: {paid}
+        Pending Invoices: {pending}
+        Overdue Invoices: {overdue}
+
+        Rules:
+        - Give short points
+        - Mix positive + warning + improvement
+        - Keep it simple
+        """
+
+        # 🔥 SAFETY CHECK
         if not settings.GEMINI_API_KEY:
-            raise Exception("No API_KEY found. Please set GOOGLE_API_KEY in Render Environment settings.")
+            raise Exception("API Key missing! Please set GOOGLE_API_KEY in Render Environment settings.")
 
         model = genai.GenerativeModel("gemini-1.5-flash")
         response = model.generate_content(prompt)
 
         lines = response.text.split("\n")
-
         suggestions = []
 
         for line in lines:
@@ -489,6 +488,8 @@ def ai_suggestions(request):
                 })
 
     except Exception as e:
+        import traceback
+        print(traceback.format_exc()) # Print error to Render logs
         suggestions = [{
             "type": "danger",
             "text": "AI error: " + str(e)
