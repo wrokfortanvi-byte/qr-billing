@@ -474,7 +474,7 @@ def ai_suggestions(request):
             raise Exception("API Key missing! Please set GOOGLE_API_KEY in Render Environment settings.")
 
         genai.configure(api_key=settings.GEMINI_API_KEY)
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.0-flash")
         response = model.generate_content(prompt)
 
         lines = response.text.split("\n")
